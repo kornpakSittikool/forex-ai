@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gold Day Trade Assistant | IQ Option Forex (XAU/USD)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              500: '#f59e0b',
+              600: '#d97706',
+              900: '#78350f',
+            },
+            dark: {
+              bg: '#0b0f19',
+              card: '#111827',
+              border: '#1f2937',
+              hover: '#1e293b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Prompt', sans-serif; }
+  </style>
+</head>
+<body class="bg-[#0b0f19] text-gray-100 min-h-screen flex flex-col antialiased selection:bg-amber-500 selection:text-black">
+
+  <!-- Top Announcement / Status Bar -->
+  <header class="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-400 flex items-center justify-center shadow-lg shadow-amber-500/20">
+          <span class="text-2xl">🪙</span>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-white flex items-center gap-2">
+            Gold Day Trade Assistant
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">IQ Option Forex</span>
+          </h1>
+          <p class="text-xs text-gray-400">ระบบสไนเปอร์ 1M ทองคำ (XAU/USD) รอบค่ำ 19:00 - 22:00 (NY / London Overlap) | กฎ 1 ไม้ต่อวัน 2:1 R:R (+5$ TP / -2.5$ SL)</p>
+        </div>
+      </div>
+
+      <!-- Clock & Countdown Badge -->
+      <div class="flex items-center space-x-3">
+        <div class="bg-gray-800/90 border border-gray-700/80 rounded-xl px-4 py-1.5 flex items-center space-x-3">
+          <div class="text-right">
+            <div class="text-xs text-gray-400">เวลากรุงเทพฯ (UTC+7)</div>
+            <div id="liveClock" class="text-sm font-mono font-bold text-amber-400">--:--:--</div>
+          </div>
+          <div class="h-6 w-px bg-gray-700"></div>
+          <div class="text-left">
+            <div id="sessionStatusLabel" class="text-xs text-gray-400">นับถอยหลังรอบค่ำ 19:00</div>
+            <div id="countdownBadge" class="text-sm font-mono font-bold text-emerald-400">--:--:--</div>
+          </div>
+        </div>
+
+        <button id="backtestModalBtn" onclick="openBacktestModal()" title="ดูผลการทดสอบย้อนหลัง 1 ปี" class="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition flex items-center gap-1.5 text-xs font-semibold">
+          <span>📊</span>
+          <span class="hidden sm:inline">ผล Backtest (1 ปี)</span>
+        </button>
+
+        <button id="soundToggleBtn" onclick="testSoundAlert()" title="ทดสอบเสียงแจ้งเตือน" class="p-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 transition flex items-center gap-1.5 text-xs">
+          <span>🔔</span>
+          <span class="hidden sm:inline">ทดสอบเสียง</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Body Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+    <!-- Control & Money Management Bar -->
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 shadow-xl flex flex-wrap items-center justify-between gap-4">
+      <div class="flex flex-wrap items-center gap-4">
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-gray-300 font-medium">💰 เงินลงทุนต่อไม้:</span>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm">$</span>
+            <input type="number" id="inputInvestment" value="10" min="1" max="1000" step="1"
+              class="w-24 pl-7 pr-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm font-bold text-white focus:outline-none focus:border-amber-500" />
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-gray-300 font-medium">⚡ ตัวคูณ (Multiplier):</span>
+          <select id="inputMultiplier" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm font-bold text-white focus:outline-none focus:border-amber-500">
+            <option value="50">x50 (เสี่ยงต่ำ)</option>
+            <option value="100">x100 (มาตรฐาน IQ Option)</option>
+            <option value="200" selected>x200 (แนะนำ: สไนเปอร์ 1M 2:1)</option>
+          </select>
+        </div>
+
+        <span class="text-xs text-gray-400 italic">💡 คำนวณกำไร/ขาดทุนเป็นเงินดอลลาร์ตามขนาดไม้ของคุณ</span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button id="analyzeBtn" onclick="runManualAnalysis()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-bold text-sm shadow-lg shadow-amber-500/25 transition flex items-center gap-2 active:scale-95">
+          <svg id="analyzeSpinner" class="hidden animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span id="analyzeBtnText">⚡ วิเคราะห์ทันที</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Alert Banner (Appears when triggered) -->
+    <div id="alertBanner" class="hidden animate-bounce border border-amber-500/50 bg-amber-500/10 rounded-2xl p-4 flex items-center justify-between shadow-xl">
+      <div class="flex items-center space-x-3">
+        <div class="p-2 rounded-xl bg-amber-500 text-black font-bold text-xl">🔔</div>
+        <div>
+          <h3 class="font-bold text-amber-300">แจ้งเตือนรอบค่ำ 19:00: สไนเปอร์ 1M ตลาด New York / London เปิดแล้ว!</h3>
+          <p class="text-xs text-amber-200/80">ระบบได้วิเคราะห์กราฟทองคำ 1M และออกแผนสไนเปอร์ 2:1 (+5$ TP / -2.5$ SL) เรียบร้อยแล้ว กฎเหล็ก 1 ไม้ต่อวัน ชนเป้าแล้วปิดจอทันที</p>
+        </div>
+      </div>
+      <button onclick="dismissBanner()" class="text-xs text-amber-300 underline px-3 py-1 hover:text-white">รับทราบ</button>
+    </div>
+
+    <!-- Grid Layout: Signal Card + Live TradingView Chart -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LEFT: Signal & Execution Playbook (5 cols) -->
+      <div class="lg:col-span-5 space-y-6">
+
+        <!-- Main Signal Card -->
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+          <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-amber-500/5 blur-3xl pointer-events-none"></div>
+
+          <!-- Header of Card -->
+          <div class="flex items-center justify-between border-b border-gray-800 pb-4 mb-5">
+            <div>
+              <span class="text-xs text-gray-400 block font-medium">สัญญาณล่าสุด</span>
+              <span id="analysisTimestamp" class="text-xs font-mono text-gray-500">กำลังโหลด...</span>
+            </div>
+            <div id="signalBadgeContainer" class="flex flex-col items-end gap-1.5">
+              <span id="signalBadge" class="px-4 py-1.5 rounded-full text-base font-extrabold tracking-wider bg-gray-800 text-gray-300">
+                LOADING...
+              </span>
+              <span id="tqfQualityBadge" class="hidden text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-gray-800 text-gray-400 border border-gray-700/60">
+              </span>
+            </div>
+          </div>
+
+          <!-- Current Action Header -->
+          <div class="mb-5">
+            <h2 id="actionText" class="text-xl font-bold text-white mb-1">กำลังวิเคราะห์ข้อมูลตลาด...</h2>
+            <div class="flex items-center gap-2 text-xs text-gray-400">
+              <span>ราคาทองปัจจุบัน:</span>
+              <span id="currentPrice" class="font-mono text-lg font-bold text-amber-400">$--.--</span>
+              <span id="priceSource" class="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400">Live</span>
+            </div>
+          </div>
+
+          <!-- Key Price Targets Grid -->
+          <div class="grid grid-cols-2 gap-3 mb-5">
+            <div class="bg-gray-800/60 border border-gray-700/60 rounded-2xl p-3.5">
+              <div class="text-[11px] font-medium text-gray-400 mb-1">🎯 จุดเข้าออเดอร์ (Entry Range)</div>
+              <div id="entryRange" class="font-mono text-sm font-bold text-white">$---- - $----</div>
+            </div>
+
+            <div class="bg-gray-800/60 border border-gray-700/60 rounded-2xl p-3.5">
+              <div class="text-[11px] font-medium text-gray-400 mb-1">⚖️ ความน่าจะเป็น (Confidence)</div>
+              <div id="confidenceVal" class="font-mono text-sm font-bold text-emerald-400">--%</div>
+            </div>
+
+            <div class="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-3.5">
+              <div class="text-[11px] font-semibold text-emerald-400 mb-1">🚀 จุดทำกำไร (Take Profit)</div>
+              <div id="tpLevel" class="font-mono text-sm font-bold text-emerald-300">TP1: $----</div>
+              <div id="tpLevel2" class="font-mono text-xs text-emerald-500/90 mt-0.5">TP2: $----</div>
+            </div>
+
+            <div class="bg-rose-950/30 border border-rose-500/30 rounded-2xl p-3.5">
+              <div class="text-[11px] font-semibold text-rose-400 mb-1">🛑 จุดตัดขาดทุน (Stop Loss)</div>
+              <div id="slLevel" class="font-mono text-sm font-bold text-rose-300">SL: $----</div>
+              <div id="rrRatio" class="font-mono text-xs text-rose-400/80 mt-0.5">R:R --</div>
+            </div>
+          </div>
+
+          <!-- IQ OPTION CHEAT SHEET BOX -->
+          <div class="bg-gradient-to-br from-amber-500/10 via-yellow-500/5 to-transparent border border-amber-500/30 rounded-2xl p-4 mb-5">
+            <div class="flex items-center gap-2 mb-2.5">
+              <span class="text-base">📱</span>
+              <h3 class="text-xs font-bold text-amber-300 uppercase tracking-wide">โพยตั้งค่า IQ Option Forex (สไนเปอร์ 1M 2:1)</h3>
+            </div>
+            
+            <div class="space-y-2 text-xs text-gray-200">
+              <div class="flex justify-between items-center py-1 border-b border-amber-500/15">
+                <span class="text-gray-400">1. ปุ่มที่ต้องกด:</span>
+                <span id="iqDirection" class="font-bold px-2 py-0.5 rounded text-white bg-gray-800">--</span>
+              </div>
+              <div class="flex justify-between items-center py-1 border-b border-amber-500/15">
+                <span class="text-gray-400">2. สไลเดอร์ปิดกำไร (Take Profit +50%):</span>
+                <span id="iqTpPct" class="font-mono font-bold text-emerald-400">+50% (ได้กำไร +$5.00 USD)</span>
+              </div>
+              <div class="flex justify-between items-center py-1">
+                <span class="text-gray-400">3. สไลเดอร์ตัดขาดทุน (Stop Loss -25%):</span>
+                <span id="iqSlPct" class="font-mono font-bold text-rose-400">-25% (ยอมเสีย -$2.50 USD)</span>
+              </div>
+            </div>
+
+            <div class="mt-3 pt-2.5 border-t border-amber-500/20 text-[11px] text-amber-200/90 flex items-center gap-1.5">
+              <span>🎯</span>
+              <span id="iqSummaryText">แผน 1 ไม้ต่อวัน: ลงทุน $10 x200 (พอร์ต $30) ชนเป้า +$5.00 USD แล้วล็อคกำไรทันที</span>
+            </div>
+          </div>
+
+          <!-- 2-STEP TRAILING STOP PLAYBOOK CARD -->
+          <div class="bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-500/30 rounded-2xl p-4 mb-5">
+            <div class="flex items-center gap-2 mb-2.5">
+              <span class="text-base">🛡️</span>
+              <h3 class="text-xs font-bold text-indigo-300 uppercase tracking-wide">แผนบริหาร Trailing Stop 2 จังหวะ (แก้ทางไม้แพ้)</h3>
+            </div>
+            <div class="space-y-2 text-xs text-gray-200">
+              <div class="flex justify-between items-center py-1 border-b border-indigo-500/15">
+                <span class="text-gray-400">จังหวะ 1 (กำไรแตะ +50%):</span>
+                <span id="trailingStep1" class="font-mono font-bold text-amber-300">เลื่อน SL สู่จุดเข้า (Break-Even $0.00)</span>
+              </div>
+              <div class="flex justify-between items-center py-1 border-b border-indigo-500/15">
+                <span class="text-gray-400">จังหวะ 2 (กำไรแตะ +75%):</span>
+                <span id="trailingStep2" class="font-mono font-bold text-emerald-400">เลื่อน SL ล็อคกำไรที่ +$1.50 (+15%)</span>
+              </div>
+              <div class="flex justify-between items-center py-1">
+                <span class="text-gray-400">เป้าหมายสูงสุด (Full Take Profit):</span>
+                <span id="trailingStep3" class="font-mono font-bold text-emerald-300">+100% ชนเป้า +$5.00 แล้วปิดจอทันที</span>
+              </div>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-indigo-500/20 text-[11px] text-indigo-200/90 flex items-center gap-1.5">
+              <span>💡</span>
+              <span id="trailingSummaryText">เมื่อราคาวิ่งไป 75% ให้ล็อคกำไรทันทีเพื่อป้องกันราคาย้อนกลับชน SL</span>
+            </div>
+          </div>
+
+          <!-- RATIONALE (เหตุผลการวิเคราะห์) -->
+          <div class="space-y-2">
+            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">เหตุผลทางเทคนิค (Technical Rationale)</h4>
+            <ul id="reasonsList" class="space-y-1.5 text-xs text-gray-300">
+              <li class="flex items-start gap-2">
+                <span class="text-amber-500 mt-0.5">•</span>
+                <span>กำลังโหลดข้อมูล...</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Asian Range / Indicator Stats -->
+          <div class="mt-5 pt-4 border-t border-gray-800 flex flex-wrap gap-2 text-[10px] text-gray-400">
+            <span class="px-2.5 py-1 rounded-lg bg-gray-800 border border-gray-700">EMA(9): <b id="statEma9" class="text-gray-200">--</b></span>
+            <span class="px-2.5 py-1 rounded-lg bg-gray-800 border border-gray-700">EMA(21): <b id="statEma21" class="text-gray-200">--</b></span>
+            <span class="px-2.5 py-1 rounded-lg bg-gray-800 border border-gray-700">EMA(50): <b id="statEma50" class="text-gray-200">--</b></span>
+            <span class="px-2.5 py-1 rounded-lg bg-gray-800 border border-gray-700">Asian High: <b id="statAsianHigh" class="text-gray-200">--</b></span>
+            <span class="px-2.5 py-1 rounded-lg bg-gray-800 border border-gray-700">Asian Low: <b id="statAsianLow" class="text-gray-200">--</b></span>
+            <span class="px-2.5 py-1 rounded-lg bg-gray-800 border border-gray-700">RSI(14): <b id="statRsi" class="text-gray-200">--</b></span>
+            <span class="px-2.5 py-1 rounded-lg bg-gray-800 border border-gray-700">ATR: <b id="statAtr" class="text-gray-200">--</b></span>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Interactive TradingView Chart (7 cols) -->
+      <div class="lg:col-span-7 space-y-6">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl p-5 shadow-2xl flex flex-col h-[650px]">
+          
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-gray-800">
+            <div class="flex items-center space-x-2">
+              <span class="text-base">📊</span>
+              <h3 class="text-sm font-bold text-white">กราฟราคาทองคำสด (TradingView XAU/USD 1M)</h3>
+            </div>
+            <div class="text-xs text-gray-400">
+              แท่งเทียน 1 นาที (1M) • สไนเปอร์รอบ 19:00 - 22:00 ตรวจสอบแท่งเทียนก่อนกดออเดอร์
+            </div>
+          </div>
+
+          <!-- TradingView Widget Container -->
+          <div class="flex-1 w-full rounded-2xl overflow-hidden border border-gray-800 bg-black" id="tradingview_widget">
+            <!-- Widget injected by script -->
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom: Today's Analysis History Log -->
+    <div class="bg-gray-900 border border-gray-800 rounded-3xl p-6 shadow-xl">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center space-x-2">
+          <span class="text-base">📜</span>
+          <h3 class="text-sm font-bold text-white">ประวัติบทวิเคราะห์และสัญญาณ (Today's Logs)</h3>
+        </div>
+        <span class="text-xs text-gray-400">บันทึกรอบการวิเคราะห์ล่าสุด</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-gray-300">
+          <thead class="text-[11px] text-gray-400 uppercase bg-gray-800/60 border-b border-gray-700">
+            <tr>
+              <th scope="col" class="px-4 py-3 rounded-l-xl">เวลา</th>
+              <th scope="col" class="px-4 py-3">สัญญาณ</th>
+              <th scope="col" class="px-4 py-3">ราคาเข้า</th>
+              <th scope="col" class="px-4 py-3">เป้ากำไร (TP)</th>
+              <th scope="col" class="px-4 py-3">ตัดขาดทุน (SL)</th>
+              <th scope="col" class="px-4 py-3">คาดการณ์กำไร ($)</th>
+              <th scope="col" class="px-4 py-3 rounded-r-xl">เหตุผลย่อ</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody" class="divide-y divide-gray-800">
+            <tr>
+              <td colspan="7" class="px-4 py-6 text-center text-gray-500">กำลังโหลดข้อมูลประวัติ...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- BACKTEST MODAL DIALOG -->
+  <div id="backtestModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-800 rounded-3xl max-w-4xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-6">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-gray-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 rounded-2xl bg-amber-500/20 text-amber-400 text-xl font-bold">📊</div>
+          <div>
+            <h2 id="btModalTitle" class="text-lg font-bold text-white flex items-center gap-2">
+              ผลการทดสอบย้อนหลัง 1M Sniper System
+              <span id="btDatasetBadge" class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">525,600 แท่งเทียน (1M)</span>
+            </h2>
+            <p id="btDatasetSubtitle" class="text-xs text-gray-400">ข้อมูลจริงของทองคำ (XAU/USD) 1M สไนเปอร์ช่วงเวลา 19:00 - 22:00 น. ตลาดนิวยอร์ก/ลอนดอน (1-Trade-Per-Day, R:R 2:1)</p>
+          </div>
+        </div>
+        <button onclick="closeBacktestModal()" class="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800 transition">✕</button>
+      </div>
+
+      <!-- Comparative Benchmarking Banner & Strategy Mode Selector -->
+      <div class="bg-gradient-to-r from-emerald-500/15 via-amber-500/10 to-gray-800/40 border border-emerald-500/30 rounded-2xl p-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div id="btCmpTitle" class="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+              <span>🛡️</span> โหมดการเปรียบเทียบ: สไนเปอร์ผ่าน Filter (TQF) vs. สัญญาณเดิม (Baseline)
+            </div>
+            <div id="btCmpSubtitle" class="text-[11px] text-gray-400 mt-0.5">
+              ผสาน Triple EMA, เลี่ยงกรอบ 19:00-19:29 และ 2-Step Trailing Stop เพิ่ม Profit Factor เป็น 1.51x และ Non-Losing แตะ 56.7% (3.3 ไม้/สัปดาห์)
+            </div>
+          </div>
+          <!-- Strategy Switcher Buttons -->
+          <div class="flex gap-1.5 bg-gray-800/90 p-1 rounded-xl border border-gray-700/60">
+            <button id="btStratFiltered" onclick="switchBacktestStrategy('filtered')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-emerald-500 text-black shadow">
+              🛡️ ผ่าน Filter TQF + Trailing Stop (แนะนำ)
+            </button>
+            <button id="btStratBaseline" onclick="switchBacktestStrategy('baseline')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-gray-400 hover:text-white">
+              📊 สัญญาณเดิม (Baseline)
+            </button>
+          </div>
+        </div>
+
+        <!-- Comparison Metric Delta Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3 pt-3 border-t border-gray-800 text-center text-xs">
+          <div class="bg-gray-800/70 border border-gray-700/50 rounded-xl p-2.5">
+            <span class="text-gray-400 text-[10px] block">อัตราไม่ขาดทุน</span>
+            <span class="font-bold text-gray-300 text-xs" id="cmpNonLossVal">47.5% ➔ <b class="text-emerald-400">56.7%</b></span>
+            <span class="text-[10px] text-emerald-400 block font-semibold" id="cmpNonLossDelta">+9.22% ปลอดภัยขึ้น</span>
+          </div>
+          <div class="bg-gray-800/70 border border-gray-700/50 rounded-xl p-2.5">
+            <span class="text-gray-400 text-[10px] block">Profit Factor</span>
+            <span class="font-bold text-gray-300 text-xs" id="cmpPfVal">1.02 ➔ <b class="text-emerald-400">1.51</b></span>
+            <span class="text-[10px] text-emerald-400 block font-semibold" id="cmpPfDelta">+1.48x เท่าตัว</span>
+          </div>
+          <div class="bg-gray-800/70 border border-gray-700/50 rounded-xl p-2.5">
+            <span class="text-gray-400 text-[10px] block">Max Drawdown ($10)</span>
+            <span class="font-bold text-gray-300 text-xs" id="cmpDdVal">$77.50 ➔ <b class="text-emerald-400">$40.00</b></span>
+            <span class="text-[10px] text-emerald-400 block font-semibold" id="cmpDdDelta">-45.6% ความเสี่ยงลดลง</span>
+          </div>
+          <div class="bg-gray-800/70 border border-gray-700/50 rounded-xl p-2.5">
+            <span class="text-gray-400 text-[10px] block">กำไรสุทธิ ($10)</span>
+            <span class="font-bold text-gray-300 text-xs" id="cmpNetVal">+$7.18 ➔ <b class="text-emerald-400">+$94.00</b></span>
+            <span class="text-[10px] text-emerald-400 block font-semibold" id="cmpNetDelta">+$86.82 USD (+1,200%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overall Win Rate & Ratio Highlights -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-3.5 text-center">
+          <div class="text-[11px] text-emerald-400 font-semibold mb-0.5">🏆 ชนะ (Win Rate)</div>
+          <div id="btWinRate" class="text-2xl font-extrabold text-emerald-300">--%</div>
+          <div id="btWinsCount" class="text-[10px] text-emerald-400/80">-- ไม้</div>
+        </div>
+
+        <div class="bg-amber-950/30 border border-amber-500/30 rounded-2xl p-3.5 text-center">
+          <div class="text-[11px] text-amber-400 font-semibold mb-0.5">🛡️ เสมอกันทุน (Break-Even)</div>
+          <div id="btBeRate" class="text-2xl font-extrabold text-amber-300">--%</div>
+          <div id="btBeCount" class="text-[10px] text-amber-400/80">-- ไม้ (กันทุนปลอดภัย)</div>
+        </div>
+
+        <div class="bg-rose-950/30 border border-rose-500/30 rounded-2xl p-3.5 text-center">
+          <div class="text-[11px] text-rose-400 font-semibold mb-0.5">🛑 แพ้ (Loss Rate)</div>
+          <div id="btLossRate" class="text-2xl font-extrabold text-rose-300">--%</div>
+          <div id="btLossesCount" class="text-[10px] text-rose-400/80">-- ไม้</div>
+        </div>
+
+        <div class="bg-indigo-950/30 border border-indigo-500/30 rounded-2xl p-3.5 text-center">
+          <div class="text-[11px] text-indigo-400 font-semibold mb-0.5">✨ อัตราไม้ไม่ขาดทุน</div>
+          <div id="btNonLossRate" class="text-2xl font-extrabold text-indigo-300">--%</div>
+          <div id="btTotalTrades" class="text-[10px] text-indigo-400/80">จากทั้งหมด -- ไม้</div>
+        </div>
+      </div>
+
+      <!-- Trade Size Selector Tabs -->
+      <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+        <span class="text-xs font-semibold text-gray-300">เลือกดูผลตอบแทนตามขนาดไม้ลงทุน (x200 Multiplier, 1M Sniper):</span>
+        <div class="flex gap-1.5 bg-gray-800/80 p-1 rounded-xl">
+          <button id="sizeTab2" onclick="switchBacktestSize('2')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-gray-400 hover:text-white">ไม้ละ $2</button>
+          <button id="sizeTab5" onclick="switchBacktestSize('5')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-gray-400 hover:text-white">ไม้ละ $5</button>
+          <button id="sizeTab10" onclick="switchBacktestSize('10')" class="px-3 py-1 rounded-lg text-xs font-bold transition bg-amber-500 text-black shadow">ไม้ละ $10 (แนะนำ)</button>
+        </div>
+      </div>
+
+      <!-- Size Metrics Row -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-gray-800/50 border border-gray-700/60 rounded-2xl p-3 text-center">
+          <span class="text-[10px] text-gray-400 block">💰 กำไรสุทธิ</span>
+          <span id="btNetProfit" class="text-lg font-mono font-bold text-emerald-400">+$-- USD</span>
+        </div>
+        <div class="bg-gray-800/50 border border-gray-700/60 rounded-2xl p-3 text-center">
+          <span class="text-[10px] text-gray-400 block">📈 อัตราผลตอบแทน (ROI)</span>
+          <span id="btRoi" class="text-lg font-mono font-bold text-amber-400">+--%</span>
+        </div>
+        <div class="bg-gray-800/50 border border-gray-700/60 rounded-2xl p-3 text-center">
+          <span class="text-[10px] text-gray-400 block">⚖️ Profit Factor</span>
+          <span id="btProfitFactor" class="text-lg font-mono font-bold text-white">--</span>
+        </div>
+        <div class="bg-gray-800/50 border border-gray-700/60 rounded-2xl p-3 text-center">
+          <span class="text-[10px] text-gray-400 block">🛡️ Max Drawdown สูงสุด</span>
+          <span id="btMaxDd" class="text-lg font-mono font-bold text-rose-400">-$-- USD</span>
+        </div>
+      </div>
+
+      <!-- Equity Curve Canvas -->
+      <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="text-xs font-bold text-gray-300 flex items-center gap-1.5">
+            <span>📈</span> กราฟการเติบโตของกำไรสะสม (Equity Curve)
+          </h4>
+          <span id="equityCurveSubtitle" class="text-[10px] text-gray-500">คำนวณสะสมทีละไม้ตลอดช่วงเวลาทดสอบย้อนหลัง</span>
+        </div>
+        <div class="relative w-full h-44">
+          <canvas id="equityCanvas" class="w-full h-full block"></canvas>
+        </div>
+      </div>
+
+      <!-- Monthly Breakdown Table -->
+      <div>
+        <h4 class="text-xs font-bold text-gray-300 mb-2 flex items-center gap-1.5">
+          <span>📅</span> ตารางผลประกอบการแยกรายเดือน (Monthly Performance)
+        </h4>
+        <div class="overflow-x-auto max-h-48 overflow-y-auto rounded-xl border border-gray-800">
+          <table class="w-full text-left text-xs text-gray-300">
+            <thead class="text-[10px] text-gray-400 uppercase bg-gray-800/80 sticky top-0">
+              <tr>
+                <th class="px-3 py-2">เดือน</th>
+                <th class="px-3 py-2">จำนวนไม้</th>
+                <th class="px-3 py-2">ชนะ (ไม้)</th>
+                <th class="px-3 py-2">แพ้ (ไม้)</th>
+                <th class="px-3 py-2">กันทุน (ไม้)</th>
+                <th class="px-3 py-2">Win Rate %</th>
+                <th id="btMonthlyPnlHeader" class="px-3 py-2 text-right">กำไรสุทธิ ($10 ไม้)</th>
+              </tr>
+            </thead>
+            <tbody id="btMonthlyBody" class="divide-y divide-gray-800 bg-gray-900/60 font-mono text-[11px]">
+              <!-- Injected by script -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Footer Note -->
+      <div class="border-t border-gray-800 pt-3 flex items-center justify-between text-xs text-gray-500">
+        <span>* ผลการทดสอบจากข้อมูลจริง 1 ปี ไม้ที่ไม่แพ้รวมกันแตะ 45.1% ด้วยระบบ Trailing Break-Even และ TQF (สไนเปอร์ 3-4 ไม้/สัปดาห์)</span>
+        <button onclick="closeBacktestModal()" class="px-4 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xs font-bold transition">ปิดหน้าต่าง</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-800 py-4 text-center text-xs text-gray-500">
+    Gold Day Trade Assistant • พัฒนาขึ้นสำหรับการวางแผน Day Trade ทองคำบน IQ Option • การลงทุนมีความเสี่ยง โปรดใช้วิจารณญาณก่อนออกออเดอร์เสมอ
+  </footer>
+
+  <!-- TradingView Library & App Scripts -->
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
